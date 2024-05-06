@@ -31,7 +31,7 @@ Trust me.";
 
         assert_eq!(
             vec!["Rust:", "Trust me."],
-            search_case_insensitive(query, contents)
+            search_case_insensitive(query, contents, &false)
         );
     }
 
@@ -55,6 +55,7 @@ pub struct Config {
     file_path: String,
     ignore_case: bool,
     help: bool,
+    invert_match: bool,
 }
 
 impl Config {
@@ -64,10 +65,10 @@ impl Config {
                 query: "".to_string(),
                 file_path: "".to_string(),
                 ignore_case: false,
-                help: true
+                help: true,
+                invert_match: false,
             });
         }
-        
 
         if args.len() < 3{
             return Err("Expected more arguments!");
@@ -76,13 +77,15 @@ impl Config {
         let query = args[1].clone();
         let file_path = args[2].clone();
         let ignore_case = args.contains(&String::from("--ignore_case"));
+        let invert_match = args.contains(&String::from("--invert_match"));
 
 
         Ok(Config {
             query,
             file_path,
             ignore_case,
-            help: false
+            help: false,
+            invert_match,
         })
     }
 }
@@ -97,6 +100,7 @@ Pattern and selection:
     --ignore_case   ignore case distinction in pattern and data
 
 Miscellaneous:
+    --invert_match  select non-matching lines
     --help          display this help message and exit");
 }
 
@@ -107,10 +111,15 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     }
 
     let contents = fs::read_to_string(config.file_path)?;
-
     let results = match config.ignore_case {
-        true => search_case_insensitive(&config.query, &contents),
-        false => search(&config.query, &contents),
+        true => search_case_insensitive(
+                    &config.query,
+                    &contents,
+                    &config.invert_match),
+        false => search(
+                    &config.query,
+                    &contents,
+                    &config.invert_match),
     };
 
     for line in results {
@@ -120,11 +129,15 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+pub fn search<'a>(
+    query: &str,
+    contents: &'a str,
+    invert_match: &bool
+) -> Vec<&'a str> {
     let mut results = Vec::new();
 
     for line in contents.lines() {
-        if line.contains(query) {
+        if line.contains(&query) ^ invert_match {
             results.push(line);
         }
     }
@@ -135,12 +148,13 @@ pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
 pub fn search_case_insensitive<'a>(
     query: &str,
     contents: &'a str,
+    invert_match: &bool
 ) -> Vec<&'a str> {
     let query = query.to_lowercase();
     let mut results = Vec::new();
 
     for line in contents.lines() {
-        if line.to_lowercase().contains(&query) {
+        if line.to_lowercase().contains(&query) ^ invert_match {
             results.push(line);
         }
     }
