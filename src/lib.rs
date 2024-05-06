@@ -54,19 +54,22 @@ pub struct Config {
     query: String,
     file_path: String,
     ignore_case: bool,
+    help: bool,
 }
 
 impl Config {
-//    pub fn new(args: &[String]) -> Config {
-//        let query = args[1].clone();
-//        let file_path = args[2].clone();
-//        let ignore_case = args[3].clone();
-//
-//        Config { query, file_path, ignore_case }
-//    }
-
     pub fn build(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 3 {
+        if args.contains(&String::from("--help")) {
+            return Ok(Config {
+                query: "".to_string(),
+                file_path: "".to_string(),
+                ignore_case: false,
+                help: true
+            });
+        }
+        
+
+        if args.len() < 3{
             return Err("Expected more arguments!");
         }
 
@@ -74,15 +77,35 @@ impl Config {
         let file_path = args[2].clone();
         let ignore_case = args.contains(&String::from("--ignore_case"));
 
+
         Ok(Config {
             query,
             file_path,
-            ignore_case
+            ignore_case,
+            help: false
         })
     }
 }
 
+pub fn print_help() {
+        println!("\
+Usage: grepzilla PATTERN [FILE]... [OPTION]...
+Search for PATTERN in FILE.
+Example: grepzilla 'hello world' main.rs --ignore_case
+
+Pattern and selection:
+    --ignore_case   ignore case distinction in pattern and data
+
+Miscellaneous:
+    --help          display this help message and exit");
+}
+
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    if config.help {
+        print_help();
+        return Ok(());
+    }
+
     let contents = fs::read_to_string(config.file_path)?;
 
     let results = match config.ignore_case {
