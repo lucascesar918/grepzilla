@@ -1,6 +1,5 @@
 use std::fs;
 use std::error::Error;
-use std::env;
 
 #[cfg(test)]
 mod tests {
@@ -73,7 +72,7 @@ impl Config {
 
         let query = args[1].clone();
         let file_path = args[2].clone();
-        let ignore_case = env::var("IGNORE_CASE").is_ok();
+        let ignore_case = args.contains(&String::from("--ignore_case"));
 
         Ok(Config {
             query,
